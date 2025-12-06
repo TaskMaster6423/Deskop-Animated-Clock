@@ -3,371 +3,539 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Commander Clock v3.0</title>
+    <title>Commander Clock v7.0</title>
     <style>
-        /* --- CUSTOMIZATION SECTION START --- */
+        /* --- GLOBAL VARIABLES --- */
         :root {
-            /* Default Theme (Cyber Green) - Will be overwritten by JS */
+            /* These defaults will be overwritten by JS Themes */
             --bg-color: #0f0f0f;
-            --sidebar-bg: #1a1a1a;
-            --accent-color: #00ffcc;
+            --sidebar-bg: #141414;
+            --card-bg: #000000;      /* Background of Digital Box */
+            --track-bg: #080808;     /* Background of Pillar Track */
             
-            --text-secondary: #888;
-            --font-family: 'Courier New', monospace;
-            --font-size: 80px;
-            --column-width: 110px;
-            --height: 100px;
-            --swing-speed: 0.6s;
-            --swing-type: cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            --accent-color: #00ffcc; 
+            --text-main: #ffffff;    /* Main text color */
+            --text-dim: #444444;     /* Inactive numbers */
+            --shadow-color: rgba(0,0,0,0.5);
+            
+            --font-digital: 'Courier New', monospace;
+            --font-pillar: 'Segoe UI', sans-serif;
+
+            /* Dimensions */
+            --digi-col-width: 110px;
+            --digi-height: 100px;
+            --pillar-width: 90px;
+            --pillar-item-height: 100px;
+            
+            /* Animation */
+            --ease-elastic: cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            --ease-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
         }
-        /* --- CUSTOMIZATION SECTION END --- */
 
         body {
             background-color: var(--bg-color);
-            color: var(--accent-color);
-            font-family: var(--font-family);
-            margin: 0;
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: background-color 0.5s ease, color 0.5s ease;
+            color: var(--text-main);
+            margin: 0; height: 100vh; overflow: hidden;
+            display: flex; justify-content: center; align-items: center;
+            font-family: var(--font-digital);
+            transition: background 0.5s, color 0.5s;
         }
 
-        /* --- CLOCK STYLES --- */
-        .clock-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            transition: margin-left 0.4s ease;
+        /* =========================================
+           1. NAVIGATION & SIDEBAR
+           ========================================= */
+        .menu-toggle-btn {
+            position: fixed; top: 25px; left: 25px;
+            font-size: 28px; background: none; border: none;
+            color: var(--accent-color); cursor: pointer;
+            z-index: 100; transition: opacity 0.3s, transform 0.3s;
+            padding: 10px; border-radius: 8px;
+            background: var(--shadow-color);
         }
-
-        .clock-container {
-            display: flex;
-            gap: 20px;
-            background: #000;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 0 30px rgba(0,0,0, 0.5); /* Neutral shadow to work with all colors */
-            position: relative;
-            border: 1px solid #333;
-        }
-
-        .column-window {
-            width: var(--column-width);
-            height: var(--height);
-            overflow: hidden;
-            position: relative;
-            background: #111;
-            border-radius: 8px;
-            border: 2px solid #333;
-        }
-
-        .number-strip {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            transition: transform var(--swing-speed) var(--swing-type);
-            will-change: transform;
-        }
-
-        .number {
-            height: var(--height);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: var(--font-size);
-            font-weight: bold;
-            text-shadow: 0 0 10px currentColor; /* Makes the text glow */
-        }
-
-        .label {
-            font-size: 14px;
-            text-align: center;
-            color: var(--text-secondary);
-            margin-top: 5px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        .ampm-box {
-            position: absolute;
-            right: -70px;
-            bottom: 70px;
-            font-size: 40px;
-            font-weight: bold;
-            opacity: 0;
-            transition: opacity 0.3s;
-            text-shadow: 0 0 10px currentColor;
-        }
-
-        .date-display {
-            font-size: 24px;
-            color: rgba(255,255,255,0.8);
-            margin-top: 20px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        /* --- SIDEBAR & NAVIGATION --- */
-        .menu-btn {
-            position: fixed;
-            top: 20px; left: 20px;
-            font-size: 30px;
-            background: none; border: none;
-            color: var(--accent-color);
-            cursor: pointer; z-index: 100;
-            transition: transform 0.3s, color 0.5s ease;
-        }
-        .menu-btn:hover { transform: scale(1.1); }
+        .menu-toggle-btn:hover { background: rgba(0,0,0,0.5); }
+        body.sidebar-open .menu-toggle-btn { opacity: 0; pointer-events: none; transform: translateX(-50px); }
 
         .sidebar {
-            position: fixed;
-            top: 0; left: -320px;
-            width: 300px; height: 100%;
+            position: fixed; top: 0; left: -350px;
+            width: 320px; height: 100%;
             background-color: var(--sidebar-bg);
-            border-right: 2px solid #333;
-            padding: 20px;
-            box-shadow: 5px 0 20px rgba(0,0,0,0.5);
-            transition: left 0.4s ease, background-color 0.5s ease;
-            z-index: 99;
-            display: flex;
-            flex-direction: column;
+            border-right: 1px solid var(--shadow-color);
+            box-shadow: 10px 0 30px var(--shadow-color);
+            transition: left 0.4s var(--ease-smooth), background-color 0.5s;
+            z-index: 1000; display: flex; flex-direction: column;
+            padding: 20px; box-sizing: border-box; overflow-y: auto;
+            color: var(--text-main);
         }
-        .sidebar.active { left: 0; }
+        body.sidebar-open .sidebar { left: 0; }
 
-        .sidebar h2 {
-            margin-top: 50px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 10px;
-            font-size: 16px;
-            color: #fff;
-            letter-spacing: 1px;
+        .sidebar-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 30px; border-bottom: 1px solid var(--text-dim); padding-bottom: 15px;
         }
-
-        .control-item {
-            margin: 15px 0;
-            display: flex; align-items: center; justify-content: space-between;
-            color: #ddd; font-size: 16px;
+        .sidebar-title { font-size: 18px; font-weight: bold; letter-spacing: 1px; margin: 0;}
+        .close-btn {
+            background: none; border: none; color: var(--text-dim); font-size: 24px; cursor: pointer;
+            transition: color 0.3s;
         }
+        .close-btn:hover { color: var(--accent-color); }
 
-        /* Toggle Switch */
-        .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
+        .settings-group { margin-bottom: 25px; }
+        .group-title { color: var(--text-dim); font-size: 12px; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px;}
+
+        /* Style Cards */
+        .style-selector { display: flex; gap: 10px; }
+        .style-card {
+            flex: 1; background: var(--track-bg); border: 2px solid var(--text-dim);
+            border-radius: 8px; padding: 10px; cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; gap: 5px;
+            transition: 0.3s; opacity: 0.7; color: var(--text-main);
+        }
+        .style-card:hover { opacity: 1; border-color: var(--text-main); }
+        .style-card.selected { border-color: var(--accent-color); opacity: 1; box-shadow: 0 0 10px var(--shadow-color); }
+        .card-icon { font-size: 24px; }
+        .card-label { font-size: 12px; }
+
+        /* Theme Dots */
+        .theme-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;}
+        .theme-dot {
+            width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+            border: 2px solid transparent; transition: 0.2s; box-shadow: 0 2px 5px var(--shadow-color);
+        }
+        .theme-dot.active { border-color: var(--text-main); transform: scale(1.2); }
+
+        /* Switch */
+        .toggle-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
         .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute; cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #333; transition: .4s; border-radius: 24px;
-        }
-        .slider:before {
-            position: absolute; content: "";
-            height: 16px; width: 16px; left: 4px; bottom: 4px;
-            background-color: white; transition: .4s; border-radius: 50%;
-        }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--text-dim); border-radius: 20px; transition: .4s; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: .4s; }
         input:checked + .slider { background-color: var(--accent-color); }
-        input:checked + .slider:before { transform: translateX(26px); }
-
-        /* Links */
-        .nav-links { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
-        .nav-btn {
-            background: #222; color: white; padding: 15px;
-            text-decoration: none; border-radius: 8px; border: 1px solid #333;
-            transition: 0.2s; display: flex; align-items: center; gap: 10px;
-        }
-        .nav-btn:hover { background: #333; border-color: var(--accent-color); }
-
-        /* --- THEME SELECTOR --- */
-        .theme-container {
-            display: flex;
-            gap: 15px;
-            margin-top: 15px;
-            justify-content: center;
-        }
-        .theme-btn {
-            width: 35px; height: 35px;
-            border-radius: 50%;
-            border: 2px solid transparent;
-            cursor: pointer;
-            transition: transform 0.2s, border-color 0.2s;
-        }
-        .theme-btn:hover { transform: scale(1.2); }
-        .theme-btn.active { border-color: white; transform: scale(1.1); }
+        input:checked + .slider:before { transform: translateX(20px); }
 
         .overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 98;
+            background: rgba(0,0,0,0.6); z-index: 900;
             opacity: 0; pointer-events: none; transition: opacity 0.4s;
         }
-        .overlay.active { opacity: 1; pointer-events: auto; }
+        body.sidebar-open .overlay { opacity: 1; pointer-events: auto; }
+
+
+        /* =========================================
+           2. MODE: DIGITAL CLOCK
+           ========================================= */
+        .clock-mode { display: none; } 
+        .clock-mode.active { display: flex; } 
+
+        #digital-wrapper { flex-direction: column; align-items: center; }
+        .digi-container {
+            display: flex; gap: 15px; background: var(--card-bg); padding: 30px;
+            border-radius: 20px; border: 1px solid var(--text-dim);
+            box-shadow: 0 0 40px var(--shadow-color);
+            position: relative; transition: background 0.5s;
+        }
+        .digi-window {
+            width: var(--digi-col-width); height: var(--digi-height);
+            overflow: hidden; position: relative;
+            background: var(--track-bg); border-radius: 6px; border: 2px solid var(--text-dim);
+        }
+        .digi-strip {
+            position: absolute; top: 0; left: 0; width: 100%;
+            display: flex; flex-direction: column; align-items: center;
+            transition: transform 0.6s var(--ease-elastic);
+        }
+        .digi-num {
+            height: var(--digi-height); width: 100%;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 70px; font-weight: bold; color: var(--accent-color);
+            text-shadow: 0 0 10px var(--accent-color);
+        }
+        .digi-label { text-align: center; color: var(--text-dim); font-size: 12px; margin-top: 5px; text-transform: uppercase; letter-spacing: 2px;}
+
+        /* Digital AM/PM */
+        .digi-ampm {
+            position: absolute; right: 10px; bottom: 10px;
+            font-size: 20px; font-weight: bold; color: var(--accent-color);
+            opacity: 0; transition: opacity 0.3s;
+        }
+
+
+        /* =========================================
+           3. MODE: PILLAR CLOCK
+           ========================================= */
+        #pillar-wrapper {
+            width: 100%; height: 100%;
+            justify-content: center; align-items: center;
+            gap: 20px;
+        }
+
+        .pillar-track {
+            position: relative;
+            width: var(--pillar-width); height: 70vh;
+            background: var(--track-bg); border-radius: 50px;
+            overflow: hidden;
+            box-shadow: inset 0 0 15px var(--shadow-color);
+            transition: background 0.5s, box-shadow 0.5s;
+            /* Fade Mask */
+            mask-image: linear-gradient(to bottom, transparent, black 25%, black 75%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 25%, black 75%, transparent);
+        }
+
+        .pillar-lens {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 75px; height: 75px; border-radius: 50%;
+            border: 2px solid var(--accent-color);
+            background: rgba(125, 125, 125, 0.05); /* Slight tint for classic mode visibility */
+            box-shadow: 0 0 15px var(--shadow-color), inset 0 0 10px rgba(255,255,255,0.1);
+            z-index: 10; pointer-events: none;
+        }
+
+        .pillar-strip {
+            position: absolute; top: 50%; left: 0; width: 100%;
+            transform: translateY(-50%);
+            display: flex; flex-direction: column; align-items: center;
+            transition: transform 0.6s var(--ease-smooth); will-change: transform;
+        }
+
+        .pillar-num {
+            height: var(--pillar-item-height);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 50px; font-family: var(--font-pillar); font-weight: 700;
+            color: var(--text-dim);
+            transition: color 0.3s, transform 0.3s;
+        }
+        
+        .pillar-num.active {
+            color: var(--text-main);
+            text-shadow: 0 0 20px var(--accent-color);
+            transform: scale(1.3);
+        }
+
+        /* Pillar AM/PM (Floating Badge) */
+        .pillar-ampm {
+            position: absolute; top: 50%; right: 10%;
+            transform: translateY(-50%);
+            font-size: 40px; font-weight: 900; color: var(--text-dim);
+            opacity: 0; transition: opacity 0.3s;
+        }
+
+
+        /* Date Display */
+        .date-display {
+            position: fixed; bottom: 90px;
+            color: var(--text-main); font-size: 40px; letter-spacing: 2px;
+            opacity: 0.7; text-transform: uppercase; text-align: center; width: 100%;
+        }
 
     </style>
 </head>
 <body>
 
-    <button class="menu-btn" onclick="toggleSidebar()">&#9776;</button>
+    <button class="menu-toggle-btn" onclick="toggleSidebar()">&#9776;</button>
     <div class="overlay" onclick="toggleSidebar()"></div>
 
-    <nav class="sidebar" id="sidebar">
-        <h2>DISPLAY</h2>
-        
-        <div class="control-item">
-            <span>24-Hour Format</span>
-            <label class="switch">
-                <input type="checkbox" id="formatToggle" checked onchange="toggleFormat()">
-                <span class="slider"></span>
-            </label>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2 class="sidebar-title">COMMANDER OS</h2>
+            <button class="close-btn" onclick="toggleSidebar()">&times;</button>
         </div>
 
-        <h2>COLOR THEMES</h2>
-        <div class="theme-container">
-            <div class="theme-btn" style="background: #00ffcc;" onclick="setTheme('cyber')"></div>
-            <div class="theme-btn" style="background: #ff0055;" onclick="setTheme('crimson')"></div>
-            <div class="theme-btn" style="background: #00ccff;" onclick="setTheme('azure')"></div>
-            <div class="theme-btn" style="background: #ffcc00;" onclick="setTheme('solar')"></div>
-            <div class="theme-btn" style="background: #bd00ff;" onclick="setTheme('royal')"></div>
-        </div>
-
-        <h2>CALENDAR & TOOLS</h2>
-        <div class="nav-links">
-            <a href="ms-calendar:" class="nav-btn">
-                <span>📅</span> System Calendar
-            </a>
-            <a href="https://calendar.google.com" target="_blank" class="nav-btn">
-                <span>🌐</span> Google Calendar
-            </a>
-             <div class="nav-btn" style="cursor: default; opacity: 0.7;">
-                <span>🔔</span> <span id="event-status">No urgent events</span>
+        <div class="settings-group">
+            <div class="group-title">Visual Style</div>
+            <div class="style-selector">
+                <div class="style-card" id="card-digital" onclick="setClockMode('digital')">
+                    <span class="card-icon">📟</span>
+                    <span class="card-label">Digital Box</span>
+                </div>
+                <div class="style-card" id="card-pillar" onclick="setClockMode('pillar')">
+                    <span class="card-icon">।।।</span>
+                    <span class="card-label">Vertical Pillar</span>
+                </div>
             </div>
         </div>
-        
-        <div style="margin-top: auto; font-size: 12px; color: #555; text-align: center;">
-            System v3.0 // Ready
+
+        <div class="settings-group">
+            <div class="group-title">Color Theme</div>
+            <div class="theme-row">
+                <div class="theme-dot" title="Classic Light" style="background:#e0e0e0; border:1px solid #999" onclick="setTheme('classic')"></div>
+                <div class="theme-dot" style="background:#00ffcc" onclick="setTheme('cyber')"></div>
+                <div class="theme-dot" style="background:#ff0055" onclick="setTheme('crimson')"></div>
+                <div class="theme-dot" style="background:#00ccff" onclick="setTheme('azure')"></div>
+                <div class="theme-dot" style="background:#ffcc00" onclick="setTheme('solar')"></div>
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <div class="group-title">Format</div>
+            <div class="toggle-row">
+                <span>24-Hour Clock</span>
+                <label class="switch">
+                    <input type="checkbox" id="formatToggle" checked onchange="updateSettings()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <div class="group-title">Date Options</div>
+            <div class="toggle-row">
+                <span>Show Day</span>
+                <label class="switch"><input type="checkbox" id="showDay" checked onchange="updateSettings()"><span class="slider"></span></label>
+            </div>
+            <div class="toggle-row">
+                <span>Show Date</span>
+                <label class="switch"><input type="checkbox" id="showDate" checked onchange="updateSettings()"><span class="slider"></span></label>
+            </div>
         </div>
     </nav>
 
-    <div class="clock-wrapper" id="main-content">
-        <div class="clock-container">
-            <div>
-                <div class="column-window"><div class="number-strip" id="hours"></div></div>
-                <div class="label">Hours</div>
-            </div>
-            <div>
-                <div class="column-window"><div class="number-strip" id="minutes"></div></div>
-                <div class="label">Mins</div>
-            </div>
-            <div>
-                <div class="column-window"><div class="number-strip" id="seconds"></div></div>
-                <div class="label">Secs</div>
-            </div>
-            <div class="ampm-box" id="ampm">AM</div>
+
+    <div id="digital-wrapper" class="clock-mode">
+        <div class="digi-container">
+            <div><div class="digi-window"><div class="digi-strip" id="d-h"></div></div><div class="digi-label">Hr</div></div>
+            <div><div class="digi-window"><div class="digi-strip" id="d-m"></div></div><div class="digi-label">Min</div></div>
+            <div><div class="digi-window"><div class="digi-strip" id="d-s"></div></div><div class="digi-label">Sec</div></div>
+            
+            <div class="digi-ampm" id="d-ampm">AM</div>
         </div>
-        <div class="date-display" id="date-display">LOADING DATE...</div>
     </div>
 
+
+    <div id="pillar-wrapper" class="clock-mode">
+        <div class="pillar-ampm" id="p-ampm">AM</div>
+
+        <div class="pillar-track"><div class="pillar-lens"></div><div class="pillar-strip" id="p-h1"></div></div>
+        <div class="pillar-track"><div class="pillar-lens"></div><div class="pillar-strip" id="p-h2"></div></div>
+        <div style="width:20px"></div>
+        <div class="pillar-track"><div class="pillar-lens"></div><div class="pillar-strip" id="p-m1"></div></div>
+        <div class="pillar-track"><div class="pillar-lens"></div><div class="pillar-strip" id="p-m2"></div></div>
+        <div style="width:20px"></div>
+        <div class="pillar-track"><div class="pillar-lens"></div><div class="pillar-strip" id="p-s1"></div></div>
+        <div class="pillar-track"><div class="pillar-lens"></div><div class="pillar-strip" id="p-s2"></div></div>
+    </div>
+
+    <div class="date-display" id="date-display"></div>
+
+
     <script>
-        let is24Hour = true;
-        const height = 100;
+        /* --- CONFIG --- */
+        let settings = { mode: 'digital', theme: 'cyber', is24Hour: true, showDay: true, showDate: true };
 
-        // --- THEME ENGINE ---
         const themes = {
-            cyber:   { accent: '#00ffcc', bg: '#0f0f0f', side: '#1a1a1a' },
-            crimson: { accent: '#ff0055', bg: '#140505', side: '#1f0a0a' },
-            azure:   { accent: '#00ccff', bg: '#051014', side: '#0a1a1f' },
-            solar:   { accent: '#ffcc00', bg: '#141205', side: '#1f1c0a' },
-            royal:   { accent: '#bd00ff', bg: '#100514', side: '#1a0a1f' }
-        };
-
-        function setTheme(themeName) {
-            const t = themes[themeName];
-            const root = document.documentElement;
+            // Dark Themes
+            cyber:   { accent: '#00ffcc', bg: '#0f0f0f', card: '#000', track: '#080808', text: '#fff', dim: '#444', shadow: 'rgba(0,0,0,0.5)' },
+            crimson: { accent: '#ff0055', bg: '#0f0505', card: '#1a0505', track: '#140505', text: '#fff', dim: '#554', shadow: 'rgba(0,0,0,0.6)' },
+            azure:   { accent: '#00ccff', bg: '#050f14', card: '#05141a', track: '#051014', text: '#fff', dim: '#455', shadow: 'rgba(0,0,0,0.5)' },
+            solar:   { accent: '#ffcc00', bg: '#141205', card: '#1a1805', track: '#141205', text: '#fff', dim: '#554', shadow: 'rgba(0,0,0,0.6)' },
             
-            // Apply colors to CSS Variables
-            root.style.setProperty('--accent-color', t.accent);
-            root.style.setProperty('--bg-color', t.bg);
-            root.style.setProperty('--sidebar-bg', t.side);
-
-            // Visual feedback on buttons
-            document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
-            // Find the button with matching color and add active class (simple matching)
-            // (In a real app we'd add IDs to buttons, but this is lightweight)
-            
-            // Save to LocalStorage
-            localStorage.setItem('clockTheme', themeName);
-        }
-
-        // Load saved theme on startup
-        const savedTheme = localStorage.getItem('clockTheme') || 'cyber';
-        setTheme(savedTheme);
-
-
-        // --- CLOCK ENGINE ---
-        const createStrip = (id, max, startFromOne = false) => {
-            const strip = document.getElementById(id);
-            let html = '';
-            const start = startFromOne ? 1 : 0;
-            for (let i = start; i <= max; i++) {
-                let num = i < 10 ? '0' + i : i;
-                html += `<div class="number">${num}</div>`;
+            // Light Theme (Classic)
+            classic: { 
+                accent: '#3b82f6',     /* Nice Tech Blue */
+                bg: '#e6e6e6',         /* Light Grey Background */
+                card: '#f5f5f5',       /* White-ish Box */
+                track: '#d4d4d4',      /* Grey Pillar Track */
+                text: '#333333',       /* Dark Text */
+                dim: '#999999',        /* Light Grey Dim Text */
+                shadow: 'rgba(0,0,0,0.1)' /* Soft Shadows */
             }
-            strip.innerHTML = html;
         };
 
-        createStrip('minutes', 59);
-        createStrip('seconds', 59);
-        
-        function buildHourStrip() {
-            if (is24Hour) { createStrip('hours', 23); } 
-            else { createStrip('hours', 12, true); }
-        }
-        buildHourStrip();
+        /* --- INIT --- */
+        function init() {
+            const saved = localStorage.getItem('cmdr_clock_v7');
+            if (saved) settings = { ...settings, ...JSON.parse(saved) };
 
+            setClockMode(settings.mode, false);
+            setTheme(settings.theme, false);
+            document.getElementById('formatToggle').checked = settings.is24Hour;
+            document.getElementById('showDay').checked = settings.showDay;
+            document.getElementById('showDate').checked = settings.showDate;
+
+            buildDigitalStrips();
+            buildPillarStrips();
+            updateClock();
+            setInterval(updateClock, 1000);
+        }
+
+        /* --- BUILDERS --- */
+        function createStripHTML(max, cls) {
+            let html = '';
+            for(let i=0; i<=max; i++) {
+                let display = i < 10 ? '0'+i : i;
+                if(cls === 'pillar-num') html += `<div class="${cls}" data-val="${i}">${i}</div>`;
+                else html += `<div class="${cls}">${display}</div>`;
+            }
+            return html;
+        }
+
+        function buildDigitalStrips() {
+            const maxH = settings.is24Hour ? 23 : 11; // 0-23 or 0-11 (logic handles display)
+            // Note: For 12h digital, we usually show 01-12.
+            // Let's create enough numbers 00-23 to cover all cases to be safe
+            document.getElementById('d-h').innerHTML = createStripHTML(23, 'digi-num');
+            document.getElementById('d-m').innerHTML = createStripHTML(59, 'digi-num');
+            document.getElementById('d-s').innerHTML = createStripHTML(59, 'digi-num');
+        }
+
+        function buildPillarStrips() {
+            const pop = (id, max) => document.getElementById(id).innerHTML = createStripHTML(max, 'pillar-num');
+            pop('p-h1', 2); pop('p-h2', 9);
+            pop('p-m1', 5); pop('p-m2', 9);
+            pop('p-s1', 5); pop('p-s2', 9);
+        }
+
+        /* --- LOGIC --- */
         function updateClock() {
             const now = new Date();
             let h = now.getHours();
             const m = now.getMinutes();
             const s = now.getSeconds();
-            
-            const ampmEl = document.getElementById('ampm');
-            let ampm = h >= 12 ? 'PM' : 'AM';
-            let hIndex = h; 
 
-            if (!is24Hour) {
-                ampmEl.style.opacity = 1; 
-                hIndex = h % 12; 
-                if (hIndex === 0) hIndex = 12; 
-                hIndex = hIndex - 1; 
-                ampmEl.innerText = ampm;
-            } else {
-                ampmEl.style.opacity = 0; 
+            // AM/PM Logic
+            let ampmStr = h >= 12 ? 'PM' : 'AM';
+            let dispH = h;
+            
+            // Show/Hide AM/PM Indicators
+            const ampmOpacity = settings.is24Hour ? 0 : 1;
+            const pAmpm = document.getElementById('p-ampm');
+            const dAmpm = document.getElementById('d-ampm');
+            
+            pAmpm.style.opacity = ampmOpacity;
+            pAmpm.innerText = ampmStr;
+            dAmpm.style.opacity = ampmOpacity;
+            dAmpm.innerText = ampmStr;
+
+            if(!settings.is24Hour) {
+                dispH = h % 12;
+                if(dispH === 0) dispH = 12;
             }
 
-            document.getElementById('hours').style.transform = `translateY(-${hIndex * height}px)`;
-            document.getElementById('minutes').style.transform = `translateY(-${m * height}px)`;
-            document.getElementById('seconds').style.transform = `translateY(-${s * height}px)`;
+            if(settings.mode === 'digital') updateDigital(dispH, m, s);
+            else updatePillar(dispH, m, s);
 
-            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            document.getElementById('date-display').innerText = now.toLocaleDateString(undefined, dateOptions);
+            // Date
+            let dateStr = '';
+            if(settings.showDay) dateStr += now.toLocaleDateString(undefined, {weekday:'long'}) + ' ';
+            if(settings.showDate) dateStr += now.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
+            document.getElementById('date-display').innerText = dateStr;
         }
 
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('active');
-            document.querySelector('.overlay').classList.toggle('active');
+        function updateDigital(h, m, s) {
+            // In 24h mode: h is 0-23. In 12h mode: h is 1-12.
+            // The strip has 0-23. 
+            // If 12h mode: index is h (since strip has 0, but we want to show '1' as index 1... wait.
+            // Strip is 00, 01, 02... 12.
+            // If time is 12, we want index 12. If time is 1, index 1.
+            // If 24h mode time is 00, index 0.
+            // So we can just use h directly as index for both modes, 
+            // provided the strip handles 00-23.
+            
+            // Special Case: In 12h mode, 12 AM is 0 hours in 24h, but shows as 12.
+            // My previous logic calculated dispH as 12. Index 12 works.
+            
+            const height = 100;
+            document.getElementById('d-h').style.transform = `translateY(-${h * height}px)`;
+            document.getElementById('d-m').style.transform = `translateY(-${m * height}px)`;
+            document.getElementById('d-s').style.transform = `translateY(-${s * height}px)`;
         }
 
-        function toggleFormat() {
-            is24Hour = document.getElementById('formatToggle').checked;
-            buildHourStrip(); 
-            updateClock();    
+        function updatePillar(h, m, s) {
+            const hStr = String(h).padStart(2, '0');
+            const mStr = String(m).padStart(2, '0');
+            const sStr = String(s).padStart(2, '0');
+            movePillarColumn('p-h1', hStr[0]);
+            movePillarColumn('p-h2', hStr[1]);
+            movePillarColumn('p-m1', mStr[0]);
+            movePillarColumn('p-m2', mStr[1]);
+            movePillarColumn('p-s1', sStr[0]);
+            movePillarColumn('p-s2', sStr[1]);
         }
 
-        updateClock();
-        setInterval(updateClock, 1000);
+        function movePillarColumn(id, val) {
+            const strip = document.getElementById(id);
+            const valInt = parseInt(val);
+            const itemHeight = 100;
+            // Center calculation: Offset to move specific item to middle
+            // Base offset is -50% (centering whole strip).
+            // We need to shift UP by (index * height).
+            // Then shift DOWN by half the total height to counterbalance the -50%? 
+            // Let's use the explicit math: 
+            // Target Pos = Lens Center (0 relative)
+            // Strip Top needs to be at: - (Val * 100 + 50) relative to lens center if strip is absolutely positioned?
+            // Easiest: TranslateY = calc(-50% - (val * 100px) + (total_strip_height / 2) - 50px ) ? 
+            
+            // LET'S USE THE ROBUST METHOD from V6:
+            // Calculate center of the strip element vs center of item.
+            // Center of Item I is at (I * 100) + 50.
+            // Center of Strip is (TotalItems * 100) / 2.
+            // We want Center of Item I to align with Container Center.
+            // This is handled by CSS transform.
+            // Current CSS: top: 50%; transform: translateY(-50%); -> Centers the Strip.
+            // We need to subtract (ItemCenter - StripCenter).
+            // ItemCenter from top = val*100 + 50.
+            // StripCenter from top = (count*100) / 2.
+            // adjustment = StripCenter - ItemCenter.
+            
+            const count = strip.children.length;
+            const stripCenter = (count * 100) / 2;
+            const itemCenter = (valInt * 100) + 50;
+            const shift = stripCenter - itemCenter;
+            
+            strip.style.transform = `translateY(calc(-50% + ${shift}px))`;
+
+            Array.from(strip.children).forEach(c => {
+                c.classList.toggle('active', parseInt(c.dataset.val) === valInt);
+            });
+        }
+
+        /* --- UI --- */
+        function toggleSidebar() { document.body.classList.toggle('sidebar-open'); }
+
+        function setClockMode(mode, save=true) {
+            settings.mode = mode;
+            document.querySelectorAll('.clock-mode').forEach(el => el.classList.remove('active'));
+            if(mode === 'digital') {
+                document.getElementById('digital-wrapper').classList.add('active');
+                document.getElementById('card-digital').classList.add('selected');
+                document.getElementById('card-pillar').classList.remove('selected');
+            } else {
+                document.getElementById('pillar-wrapper').classList.add('active');
+                document.getElementById('card-pillar').classList.add('selected');
+                document.getElementById('card-digital').classList.remove('selected');
+            }
+            if(save) saveSettings();
+            updateClock();
+        }
+
+        function setTheme(name, save=true) {
+            settings.theme = name;
+            const t = themes[name];
+            const r = document.documentElement.style;
+            r.setProperty('--accent-color', t.accent);
+            r.setProperty('--bg-color', t.bg);
+            r.setProperty('--card-bg', t.card);
+            r.setProperty('--track-bg', t.track);
+            r.setProperty('--text-main', t.text);
+            r.setProperty('--text-dim', t.dim);
+            r.setProperty('--shadow-color', t.shadow);
+            
+            // Update Active Dot
+            document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('active'));
+            // This is a simple lookup, in prod we'd use IDs
+            if(save) saveSettings();
+        }
+
+        function updateSettings() {
+            settings.is24Hour = document.getElementById('formatToggle').checked;
+            settings.showDay = document.getElementById('showDay').checked;
+            settings.showDate = document.getElementById('showDate').checked;
+            if(settings.mode === 'digital') buildDigitalStrips();
+            saveSettings();
+            updateClock();
+        }
+
+        function saveSettings() { localStorage.setItem('cmdr_clock_v7', JSON.stringify(settings)); }
+        
+        init(); // Start
 
     </script>
 </body>
