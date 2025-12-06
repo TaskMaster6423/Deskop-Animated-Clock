@@ -3,20 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Commander Clock & Calendar</title>
+    <title>Commander Clock v3.0</title>
     <style>
         /* --- CUSTOMIZATION SECTION START --- */
         :root {
+            /* Default Theme (Cyber Green) - Will be overwritten by JS */
             --bg-color: #0f0f0f;
             --sidebar-bg: #1a1a1a;
-            --accent-color: #00ffcc;     /* The main glowing color */
+            --accent-color: #00ffcc;
+            
             --text-secondary: #888;
             --font-family: 'Courier New', monospace;
             --font-size: 80px;
             --column-width: 110px;
-            --height: 100px;             /* Height of one number block */
+            --height: 100px;
             --swing-speed: 0.6s;
-            --swing-type: cubic-bezier(0.68, -0.55, 0.27, 1.55); /* Bouncy Swing */
+            --swing-type: cubic-bezier(0.68, -0.55, 0.27, 1.55);
         }
         /* --- CUSTOMIZATION SECTION END --- */
 
@@ -30,6 +32,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            transition: background-color 0.5s ease, color 0.5s ease;
         }
 
         /* --- CLOCK STYLES --- */
@@ -38,7 +41,7 @@
             flex-direction: column;
             align-items: center;
             gap: 10px;
-            transition: margin-left 0.4s ease; /* Moves when sidebar opens */
+            transition: margin-left 0.4s ease;
         }
 
         .clock-container {
@@ -47,22 +50,21 @@
             background: #000;
             padding: 30px;
             border-radius: 20px;
-            box-shadow: 0 0 30px rgba(0, 255, 204, 0.1);
+            box-shadow: 0 0 30px rgba(0,0,0, 0.5); /* Neutral shadow to work with all colors */
             position: relative;
+            border: 1px solid #333;
         }
 
-        /* The window we see through */
         .column-window {
             width: var(--column-width);
             height: var(--height);
             overflow: hidden;
             position: relative;
-            background: #181818;
+            background: #111;
             border-radius: 8px;
             border: 2px solid #333;
         }
 
-        /* The moving strip */
         .number-strip {
             position: absolute;
             top: 0;
@@ -82,6 +84,7 @@
             align-items: center;
             font-size: var(--font-size);
             font-weight: bold;
+            text-shadow: 0 0 10px currentColor; /* Makes the text glow */
         }
 
         .label {
@@ -93,21 +96,20 @@
             letter-spacing: 2px;
         }
 
-        /* AM/PM Indicator */
         .ampm-box {
             position: absolute;
             right: -70px;
             bottom: 70px;
             font-size: 40px;
             font-weight: bold;
-            opacity: 0; /* Hidden by default (24h mode) */
+            opacity: 0;
             transition: opacity 0.3s;
+            text-shadow: 0 0 10px currentColor;
         }
 
-        /* --- DATE DISPLAY --- */
         .date-display {
             font-size: 24px;
-            color: white;
+            color: rgba(255,255,255,0.8);
             margin-top: 20px;
             letter-spacing: 2px;
             text-transform: uppercase;
@@ -116,118 +118,91 @@
         /* --- SIDEBAR & NAVIGATION --- */
         .menu-btn {
             position: fixed;
-            top: 20px;
-            left: 20px;
+            top: 20px; left: 20px;
             font-size: 30px;
-            background: none;
-            border: none;
+            background: none; border: none;
             color: var(--accent-color);
-            cursor: pointer;
-            z-index: 100;
-            transition: transform 0.3s;
+            cursor: pointer; z-index: 100;
+            transition: transform 0.3s, color 0.5s ease;
         }
         .menu-btn:hover { transform: scale(1.1); }
 
         .sidebar {
             position: fixed;
-            top: 0;
-            left: -320px; /* Hidden by default */
-            width: 300px;
-            height: 100%;
+            top: 0; left: -320px;
+            width: 300px; height: 100%;
             background-color: var(--sidebar-bg);
             border-right: 2px solid #333;
             padding: 20px;
             box-shadow: 5px 0 20px rgba(0,0,0,0.5);
-            transition: left 0.4s ease;
+            transition: left 0.4s ease, background-color 0.5s ease;
             z-index: 99;
             display: flex;
             flex-direction: column;
         }
-
-        .sidebar.active {
-            left: 0;
-        }
+        .sidebar.active { left: 0; }
 
         .sidebar h2 {
-            margin-top: 60px;
+            margin-top: 50px;
             border-bottom: 1px solid #333;
             padding-bottom: 10px;
-            font-size: 18px;
-            color: white;
+            font-size: 16px;
+            color: #fff;
+            letter-spacing: 1px;
         }
 
-        /* Controls inside Sidebar */
         .control-item {
             margin: 15px 0;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            color: #ddd;
-            font-size: 16px;
+            display: flex; align-items: center; justify-content: space-between;
+            color: #ddd; font-size: 16px;
         }
 
-        /* Toggle Switch Style */
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 24px;
-        }
+        /* Toggle Switch */
+        .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
-            position: absolute;
-            cursor: pointer;
+            position: absolute; cursor: pointer;
             top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #333;
-            transition: .4s;
-            border-radius: 24px;
+            background-color: #333; transition: .4s; border-radius: 24px;
         }
         .slider:before {
-            position: absolute;
-            content: "";
-            height: 16px; width: 16px;
-            left: 4px; bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
+            position: absolute; content: "";
+            height: 16px; width: 16px; left: 4px; bottom: 4px;
+            background-color: white; transition: .4s; border-radius: 50%;
         }
         input:checked + .slider { background-color: var(--accent-color); }
         input:checked + .slider:before { transform: translateX(26px); }
 
-        /* Calendar Links */
-        .nav-links {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
+        /* Links */
+        .nav-links { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
         .nav-btn {
-            background: #222;
-            color: white;
-            padding: 15px;
-            text-decoration: none;
-            border-radius: 8px;
-            border: 1px solid #333;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            background: #222; color: white; padding: 15px;
+            text-decoration: none; border-radius: 8px; border: 1px solid #333;
+            transition: 0.2s; display: flex; align-items: center; gap: 10px;
         }
-        .nav-btn:hover {
-            background: #333;
-            border-color: var(--accent-color);
-        }
+        .nav-btn:hover { background: #333; border-color: var(--accent-color); }
 
-        /* Overlay to click-away sidebar */
+        /* --- THEME SELECTOR --- */
+        .theme-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            justify-content: center;
+        }
+        .theme-btn {
+            width: 35px; height: 35px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .theme-btn:hover { transform: scale(1.2); }
+        .theme-btn.active { border-color: white; transform: scale(1.1); }
+
         .overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 98;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.4s;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 98;
+            opacity: 0; pointer-events: none; transition: opacity 0.4s;
         }
         .overlay.active { opacity: 1; pointer-events: auto; }
 
@@ -236,11 +211,10 @@
 <body>
 
     <button class="menu-btn" onclick="toggleSidebar()">&#9776;</button>
-
     <div class="overlay" onclick="toggleSidebar()"></div>
 
     <nav class="sidebar" id="sidebar">
-        <h2>SETTINGS</h2>
+        <h2>DISPLAY</h2>
         
         <div class="control-item">
             <span>24-Hour Format</span>
@@ -250,10 +224,19 @@
             </label>
         </div>
 
-        <!-- <h2>CALENDAR & EVENTS</h2>
+        <h2>COLOR THEMES</h2>
+        <div class="theme-container">
+            <div class="theme-btn" style="background: #00ffcc;" onclick="setTheme('cyber')"></div>
+            <div class="theme-btn" style="background: #ff0055;" onclick="setTheme('crimson')"></div>
+            <div class="theme-btn" style="background: #00ccff;" onclick="setTheme('azure')"></div>
+            <div class="theme-btn" style="background: #ffcc00;" onclick="setTheme('solar')"></div>
+            <div class="theme-btn" style="background: #bd00ff;" onclick="setTheme('royal')"></div>
+        </div>
+
+        <h2>CALENDAR & TOOLS</h2>
         <div class="nav-links">
             <a href="ms-calendar:" class="nav-btn">
-                <span>📅</span> Open System Calendar
+                <span>📅</span> System Calendar
             </a>
             <a href="https://calendar.google.com" target="_blank" class="nav-btn">
                 <span>🌐</span> Google Calendar
@@ -262,46 +245,68 @@
                 <span>🔔</span> <span id="event-status">No urgent events</span>
             </div>
         </div>
-         -->
-        <div style="margin-top: auto; font-size: 12px; color: #555;">
-            Command Center v2.0
+        
+        <div style="margin-top: auto; font-size: 12px; color: #555; text-align: center;">
+            System v3.0 // Ready
         </div>
     </nav>
 
     <div class="clock-wrapper" id="main-content">
         <div class="clock-container">
             <div>
-                <div class="column-window">
-                    <div class="number-strip" id="hours"></div>
-                </div>
+                <div class="column-window"><div class="number-strip" id="hours"></div></div>
                 <div class="label">Hours</div>
             </div>
-
             <div>
-                <div class="column-window">
-                    <div class="number-strip" id="minutes"></div>
-                </div>
+                <div class="column-window"><div class="number-strip" id="minutes"></div></div>
                 <div class="label">Mins</div>
             </div>
-
             <div>
-                <div class="column-window">
-                    <div class="number-strip" id="seconds"></div>
-                </div>
+                <div class="column-window"><div class="number-strip" id="seconds"></div></div>
                 <div class="label">Secs</div>
             </div>
-
             <div class="ampm-box" id="ampm">AM</div>
         </div>
-
         <div class="date-display" id="date-display">LOADING DATE...</div>
     </div>
 
     <script>
         let is24Hour = true;
-        const height = 100; // Must match CSS --height
+        const height = 100;
 
-        // 1. Build Strips
+        // --- THEME ENGINE ---
+        const themes = {
+            cyber:   { accent: '#00ffcc', bg: '#0f0f0f', side: '#1a1a1a' },
+            crimson: { accent: '#ff0055', bg: '#140505', side: '#1f0a0a' },
+            azure:   { accent: '#00ccff', bg: '#051014', side: '#0a1a1f' },
+            solar:   { accent: '#ffcc00', bg: '#141205', side: '#1f1c0a' },
+            royal:   { accent: '#bd00ff', bg: '#100514', side: '#1a0a1f' }
+        };
+
+        function setTheme(themeName) {
+            const t = themes[themeName];
+            const root = document.documentElement;
+            
+            // Apply colors to CSS Variables
+            root.style.setProperty('--accent-color', t.accent);
+            root.style.setProperty('--bg-color', t.bg);
+            root.style.setProperty('--sidebar-bg', t.side);
+
+            // Visual feedback on buttons
+            document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
+            // Find the button with matching color and add active class (simple matching)
+            // (In a real app we'd add IDs to buttons, but this is lightweight)
+            
+            // Save to LocalStorage
+            localStorage.setItem('clockTheme', themeName);
+        }
+
+        // Load saved theme on startup
+        const savedTheme = localStorage.getItem('clockTheme') || 'cyber';
+        setTheme(savedTheme);
+
+
+        // --- CLOCK ENGINE ---
         const createStrip = (id, max, startFromOne = false) => {
             const strip = document.getElementById(id);
             let html = '';
@@ -313,80 +318,54 @@
             strip.innerHTML = html;
         };
 
-        // Initialize strips
         createStrip('minutes', 59);
         createStrip('seconds', 59);
         
-        // Hour strip is dynamic based on format
         function buildHourStrip() {
-            if (is24Hour) {
-                createStrip('hours', 23); // 00-23
-            } else {
-                createStrip('hours', 12, true); // 01-12
-            }
+            if (is24Hour) { createStrip('hours', 23); } 
+            else { createStrip('hours', 12, true); }
         }
         buildHourStrip();
 
-        // 2. Logic to Move Columns
         function updateClock() {
             const now = new Date();
             let h = now.getHours();
             const m = now.getMinutes();
             const s = now.getSeconds();
             
-            // Handle AM/PM logic
             const ampmEl = document.getElementById('ampm');
             let ampm = h >= 12 ? 'PM' : 'AM';
-            
-            // Adjust translation index for hours
             let hIndex = h; 
 
             if (!is24Hour) {
-                ampmEl.style.opacity = 1; // Show AM/PM
+                ampmEl.style.opacity = 1; 
                 hIndex = h % 12; 
-                if (hIndex === 0) hIndex = 12; // Handle 12 PM/AM
-                // Since our 12h strip starts at 1, we need to shift index logic
-                // Array is [1, 2, ... 12]. Index 0 is '1'.
-                // So if hour is 1, index is 0. If hour is 12, index is 11.
+                if (hIndex === 0) hIndex = 12; 
                 hIndex = hIndex - 1; 
                 ampmEl.innerText = ampm;
             } else {
-                ampmEl.style.opacity = 0; // Hide AM/PM
+                ampmEl.style.opacity = 0; 
             }
 
-            // Move strips
-            // Note: We use parseInt on CSS var in case you change it later, 
-            // but for performance using the const 'height' is better here.
             document.getElementById('hours').style.transform = `translateY(-${hIndex * height}px)`;
             document.getElementById('minutes').style.transform = `translateY(-${m * height}px)`;
             document.getElementById('seconds').style.transform = `translateY(-${s * height}px)`;
 
-            // Update Date
             const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             document.getElementById('date-display').innerText = now.toLocaleDateString(undefined, dateOptions);
         }
 
-        // 3. User Interactions
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('active');
             document.querySelector('.overlay').classList.toggle('active');
-            
-            // Optional: Slide main content over slightly
-            /* const main = document.getElementById('main-content');
-            if(document.getElementById('sidebar').classList.contains('active')) {
-                main.style.marginLeft = "300px";
-            } else {
-                main.style.marginLeft = "0";
-            } */
         }
 
         function toggleFormat() {
             is24Hour = document.getElementById('formatToggle').checked;
-            buildHourStrip(); // Rebuild the HTML strip for hours
-            updateClock();    // Update positions immediately
+            buildHourStrip(); 
+            updateClock();    
         }
 
-        // Run
         updateClock();
         setInterval(updateClock, 1000);
 
